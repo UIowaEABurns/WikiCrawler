@@ -1,6 +1,6 @@
 -- This SQL file generates our wikipedia schema 
-create database wiki;
-USE wiki
+create database wikipedia;
+USE wikipedia
 
 -- This table stores topics that we have seen.
 -- Topics are stored as the string after /wiki/ in a wikipedia
@@ -26,5 +26,18 @@ CREATE TABLE links(
 	dest VARCHAR(255)
 );
 
--- The system needs some starting article-- philosophy is a good place to start.
+-- This table maps from the name of a wikipedia link (the part after /wiki/)
+-- To the name of an actual article. This table is used because Wikipedia
+-- allows for many links to point to the same article, and this makes
+-- sure that we can reduce from the set of all links to the set of all
+-- articles.
+CREATE TABLE canon (
+	link_name VARCHAR(255),
+	canon_name VARCHAR(255)
+);
+
+
+-- The system needs some starting articles
 INSERT INTO topics VALUES ("Philosophy");
+INSERT INTO topics VALUES ("Biology");
+INSERT INTO topics VALUES ("Physics");

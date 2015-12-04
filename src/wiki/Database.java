@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -25,22 +24,23 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 
 /**
- * The common database class which provides common methods used by other database accessors such
- * as transaction management and rollback suport. Also provides connections and maintains an active
- * data pool of available connections to the MySql database.
+ * Notes that the initialize method must be called before doing anything else in this class.
  */
 public class Database {		
 	private static String username = null;
 	private static String password = null;
+	// Running list of things that need to be written out to the links table
 	public static Queue<LinkPair> toWrite = new ConcurrentLinkedQueue<LinkPair>();
+	// Running list of things that need to be written out to the finished table
 	public static Queue<String> finishedURLs = new ConcurrentLinkedQueue<String>();
+	// Running list of things that need to be written out to the canon table
 	public static Queue<LinkPair> canonWrites = new ConcurrentLinkedQueue<LinkPair>();
 	/**
 	 * @return a new connection to the database from the connection pool
 	 */
 	protected synchronized static Connection getConnection() throws SQLException {
 		try {
-			Connection con= DriverManager.getConnection("jdbc:mysql://localhost/wiki?autoReconnect=true&amp;zeroDateTimeBehavior=convertToNull&amp",username, password);
+			Connection con= DriverManager.getConnection("jdbc:mysql://localhost/wikipedia?autoReconnect=true&amp;zeroDateTimeBehavior=convertToNull&amp",username, password);
 			return con;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -60,8 +60,6 @@ public class Database {
 		String[] settings = FileUtils.readFileToString(config).split("\n");
 		username = settings[0].split("=")[1].trim();
 		password = settings[1].split("=")[1].trim();
-		System.out.println(username);
-		System.out.println(password);
 		
 		Class.forName("com.mysql.jdbc.Driver");
 	}
@@ -155,13 +153,13 @@ public class Database {
 		return sb.substring(0, sb.length()-1);
 	}
 	
-	public static boolean writeOrphans(Collection<String> orphanTopics) {
+	public static boolean writeTopics(Collection<String> topics) {
 		Connection con = null;
 		CallableStatement procedure = null;
-		String topicString = compileFinishedString(orphanTopics);
+		String topicString = compileFinishedString(topics);
 			try {
 				con = Database.getConnection();
-				procedure = con.prepareCall("INSERT IGNORE INTO orphans VALUES "+topicString);
+				procedure = con.prepareCall("INSERT IGNORE INTO topics VALUES "+topicString);
 				procedure.executeUpdate();
 				return true;
 			} catch (Exception e) {
@@ -187,10 +185,6 @@ public class Database {
 				procedure.executeUpdate();
 				return true;
 			} catch (Exception e) {
-				File f= new File("C:/users/eric/desktop/errorstring.txt");
-				f.createNewFile();
-				
-				FileUtils.writeStringToFile(f,ExceptionUtils.getStackTrace(e)+"\n"+topicString+"\n"+linkString);
 				e.printStackTrace();
 			} finally {
 				Database.safeClose(con);
@@ -257,8 +251,8 @@ public class Database {
 			p.dest="FAKE_PLACEHOLDER_ARTICLE";
 			pairs.add(p);
 		}
-		//toWrite.addAll(pairs);
-		//finishedURLs.add(originalSource);
+		toWrite.addAll(pairs);
+		finishedURLs.add(originalSource);
 		LinkPair canon = new LinkPair();
 		canon.source=originalSource;
 		canon.dest = source;
@@ -296,6 +290,29 @@ public class Database {
 					strs.add(results.getString("topic"));
 				}
 				return strs;
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				Database.safeClose(con);
+				Database.safeClose(procedure);
+				Database.safeClose(results);
+			}
+		return null;
+	}
+	
+	public static Collection<String> readCanonTopics() {
+		Connection con = null;
+		CallableStatement procedure = null;
+		ResultSet results = null;
+			try {
+				con = Database.getConnection();
+				procedure = con.prepareCall("select canon_name from canon");
+				results = procedure.executeQuery();
+				Set<String> pairs = new HashSet<String>();
+				while (results.next()) {
+					pairs.add(results.getString("canon_name"));
+				}
+				return pairs;
 			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {

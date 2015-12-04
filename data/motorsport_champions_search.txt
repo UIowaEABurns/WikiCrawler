@@ -1,0 +1,42 @@
+List_of_1946_motorsport_champions
+
+Maximum distance found was 34
+Articles at distance 0 = 1
+Articles at distance 1 = 10
+Articles at distance 2 = 4309
+Articles at distance 3 = 370669
+Articles at distance 4 = 2654925
+Articles at distance 5 = 1604394
+Articles at distance 6 = 254364
+Articles at distance 7 = 50572
+Articles at distance 8 = 2913
+Articles at distance 9 = 742
+Articles at distance 10 = 336
+Articles at distance 11 = 267
+Articles at distance 12 = 51
+Articles at distance 13 = 34
+Articles at distance 14 = 23
+Articles at distance 15 = 19
+Articles at distance 16 = 15
+Articles at distance 17 = 11
+Articles at distance 18 = 10
+Articles at distance 19 = 9
+Articles at distance 20 = 10
+Articles at distance 21 = 8
+Articles at distance 22 = 4
+Articles at distance 23 = 4
+Articles at distance 24 = 4
+Articles at distance 25 = 3
+Articles at distance 26 = 3
+Articles at distance 27 = 3
+Articles at distance 28 = 3
+Articles at distance 29 = 4
+Articles at distance 30 = 3
+Articles at distance 31 = 3
+Articles at distance 32 = 3
+Articles at distance 33 = 2
+Articles at distance 34 = 1
+Articles at distance 35 = 0
+sample of max distance articles
+List_of_1980_motorsport_champions
+Total number of articles reachable = 4943732

@@ -34,16 +34,11 @@ public class Connection extends Thread {
 		try {
 			this.crawl();
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
-	private void log(String s) {
-		if (verbose) {
-			System.out.println(s);
-		}
-	}
+
 	
 	public String downloadPage(String topic) throws ClientProtocolException, IOException {
 		String url = HTMLParser.getURLFromTopic(topic);
@@ -56,7 +51,6 @@ public class Connection extends Thread {
 		RequestConfig defaultRequestConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BEST_MATCH).setExpectContinueEnabled(true).setStaleConnectionCheckEnabled(true).setTargetPreferredAuthSchemes(Arrays.asList(AuthSchemes.NTLM, AuthSchemes.DIGEST)).setProxyPreferredAuthSchemes(Arrays.asList(AuthSchemes.BASIC)).build();
 		RequestConfig requestConfig = RequestConfig.copy(defaultRequestConfig).setSocketTimeout(5000).setConnectTimeout(5000).setConnectionRequestTimeout(5000).build();
 		get.setConfig(requestConfig);
-		log("executing get");
 		HttpResponse response=client.execute(get);
 		String HTML = EntityUtils.toString(response.getEntity());
 		response.getEntity().getContent().close();
@@ -75,31 +69,26 @@ public class Connection extends Thread {
 					Thread.sleep(60000);
 					continue;
 				}
-				log(topic);
 				try {
 					// try to ensure we don't get too far ahead of the database
 					// thread by waiting for it to catch up
 					while (Database.getPendingSize()>60000) {
-						log("waiting for database");
 						Thread.sleep(2000);
 					}
 					String HTML = downloadPage(topic);
 					
 					//some links are bad-- we want to detect this and stop looking for links.
 					if (HTML.contains("Wikipedia does not have an article with this exact name")) {
-						log("bad topic " +topic);
 						Database.saveFinishedTopic(topic);
 						continue;
 					}
 
 					Set<String> topics = HTMLParser.getTopicsFromHTML(HTML);
-					log("finished parsing: found this many topics "+topics.size());
 					String canon = HTMLParser.getCanonicalName(HTML);
 					if (canon==null) {
 						canon = topic;
 					}
 					Database.saveLinkResults(canon, topics, topic);	
-					log("results saved");
 				} catch (Exception e) {
 					// exceptions are generally transient network errors-- just refresh the client,
 					// wait a bit, and move on. The topic will eventually be revisited.

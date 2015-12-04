@@ -14,6 +14,9 @@ public class WriteThread extends Thread {
 	// This queue is used to save topics that still need to be visited. It is
 	// expected to be a concurrent queue that is read by other threads.
 	Queue topicsToCheck = null;
+	
+	// tells this thread to stop execution once there is nothing left to write out.
+	public boolean terminateOnceComplete = false;
 	public WriteThread(Queue topicsToCheck) {
 		this.topicsToCheck = topicsToCheck;
 	}
@@ -22,17 +25,12 @@ public class WriteThread extends Thread {
 	@Override
 	public void run() {
 		try {
-			//Database.writeLinkResultsForever(topicsToCheck);
 			this.writeLinkResultsForever(topicsToCheck);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
 	}
-	
-	
-	
-	
 	
 	/**
 	 * This function runs forever, periodically writing things out to the database.
@@ -41,11 +39,11 @@ public class WriteThread extends Thread {
 	 * @param topicsToCheck 
 	 * @throws Exception
 	 */
-	public static void writeLinkResultsForever(Queue<String> topicsToCheck) throws Exception {
-		while (true) {
+	public void writeLinkResultsForever(Queue<String> topicsToCheck) throws Exception {
+		while ((!terminateOnceComplete) || (Database.finishedURLs.size()> 0 || Database.toWrite.size() > 0 || Database.canonWrites.size() > 0)) {
 			int finishedReadSize = Database.finishedURLs.size();
 			int readSize = Database.toWrite.size();
-			//System.out.println("trying to write out this many records "+readSize);
+			System.out.println("writing out this many records to the links table "+readSize);
 			boolean success = true;
 			while (readSize>0) {
 				List<LinkPair> pairs = new ArrayList<LinkPair>();
@@ -68,8 +66,6 @@ public class WriteThread extends Thread {
 			if (!Database.writeCanonNames(canon)) {
 				success = false;
 			}
-			System.out.println("this many topics to go: "+topicsToCheck.size());
-			System.out.println("wrote this many links out to the canon table: " +canon.size());
 			if (success) {
 				List<String> urls = new ArrayList<String>();
 				for (int i=0;i<finishedReadSize;i++) {

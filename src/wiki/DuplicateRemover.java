@@ -15,11 +15,11 @@ public class DuplicateRemover {
 	
 	private static int NUMBER_OF_TABLES = 300;
 	private static int RECORDS_PER_ITERATION = 2000000;
-	private static int STARTING_RECORD = 672000000;
-	private static File parentDirectory = new File("C:/users/eric/desktop/indexed_links");
+	private static File workingDirectory = null;
+	private static File outputDirectory = null;
 	
 	private static File getFile(int num) throws IOException {
-		File f = new File(parentDirectory, String.valueOf(num)+".txt");
+		File f = new File(workingDirectory, String.valueOf(num)+".txt");
 		if (!f.exists()) {
 			f.createNewFile();
 		}
@@ -46,27 +46,26 @@ public class DuplicateRemover {
 		for (int i =0 ;i<NUMBER_OF_TABLES;i++) {
 			hashToLinks.put(i, new ArrayList<LinkPair>());
 		}
-		System.out.println("found this many pairs in total: "+pairs.size());
+		System.out.println("found this many pairs for next iteration: "+pairs.size());
 		for (LinkPair p : pairs) {
 			List<LinkPair> curPairs = hashToLinks.get(p.getTableHash(NUMBER_OF_TABLES));
 		    curPairs.add(p);
 		}
 		for (int i=0;i<NUMBER_OF_TABLES;i++) {
 			appendToFile(getFile(i), hashToLinks.get(i));
-			System.out.println("writing this many pairs to table "+i+": "+hashToLinks.get(i).size());
 		}
 	}
 	
 	public static void readFromDB() throws IOException {
+		int record = 0;
 		while (true) {
-			System.out.println("current record is "+STARTING_RECORD);
-			Set<LinkPair> pairs = Database.readLinks(STARTING_RECORD, RECORDS_PER_ITERATION);
+			Set<LinkPair> pairs = Database.readLinks(record, RECORDS_PER_ITERATION);
 			if (pairs.size()==0) {
 				break;
 			}
 			writeToHashedFiles(pairs);
 			
-			STARTING_RECORD+=RECORDS_PER_ITERATION;
+			record+=RECORDS_PER_ITERATION;
 		}
 	}
 	
@@ -82,7 +81,6 @@ public class DuplicateRemover {
 	}
 	
 	public static void readFromFile(File f) throws IOException {
-		parentDirectory.mkdirs();
 		Map<String, String> canon = Database.readCanon();
 		BufferedReader reader = new BufferedReader(new FileReader(f));
 		while (true) {
@@ -107,31 +105,38 @@ public class DuplicateRemover {
 				break;
 			}
 		}
+		reader.close();
 	}
 	
 	public static void compileIntoSingleFile() throws IOException {
-		File output= new File("C:/users/eric/desktop/links/output_canon.txt");
-		output.getParentFile().mkdirs();
+		File output= new File(outputDirectory, "links_canon.txt");
 		output.createNewFile();
 		int totalCount = 0;
-		for (File f : parentDirectory.listFiles()) {
+		for (File f : workingDirectory.listFiles()) {
 			HashSet<LinkPair> pairs = new HashSet<LinkPair>();
 			String[] links = FileUtils.readFileToString(f).split("\n");
 			System.out.println("found this many links in "+f.getName()+": "+links.length);
 			for (String s : links) {
 				LinkPair p = LinkPair.getPairFromDelimitedString(s);
-				if (p!=null && HTMLParser.isTopic(p.source) && HTMLParser.isTopic(p.dest)) {
+				if (p!=null && !p.source.equals(p.dest)) {
 					pairs.add(p);
 				}
 			}
-			System.out.println("found this many unique links: "+pairs.size());
 			totalCount+=pairs.size();
 			appendToFile(output, pairs);
 		}
 		System.out.println("found this many links in total " + totalCount);
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, ClassNotFoundException {
+		outputDirectory = new File(args[0]);
+		workingDirectory = new File(outputDirectory, "temp");
+		workingDirectory.mkdirs();
+		Database.initialize();
+		readFromDB();
+		System.out.println("done splitting links into individual files: now removing duplicates and merging");
 		compileIntoSingleFile();
+		FileUtils.deleteDirectory(workingDirectory);
+		System.out.println("done, terminating");
 	}
 }
